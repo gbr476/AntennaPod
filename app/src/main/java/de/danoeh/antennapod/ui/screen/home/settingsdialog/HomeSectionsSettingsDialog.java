@@ -3,6 +3,7 @@ package de.danoeh.antennapod.ui.screen.home.settingsdialog;
 import android.content.Context;
 import androidx.annotation.NonNull;
 import de.danoeh.antennapod.R;
+import de.danoeh.antennapod.model.feed.Playlist;
 import de.danoeh.antennapod.ui.preferences.screen.ReorderDialog;
 import de.danoeh.antennapod.ui.preferences.screen.ReorderDialogItem;
 
@@ -12,12 +13,16 @@ import java.util.List;
 
 public class HomeSectionsSettingsDialog extends ReorderDialog {
     private final Runnable onSettingsChanged;
+    private List<Playlist> playlists;
     private static final String TAG_HIDDEN = "hidden";
     private static final String TAG_SHOWN = "shown";
 
-    public HomeSectionsSettingsDialog(Context context, Runnable onSettingsChanged) {
+    public HomeSectionsSettingsDialog(Context context, List<Playlist> playlists, Runnable onSettingsChanged) {
         super(context);
         this.onSettingsChanged = onSettingsChanged;
+        this.playlists = playlists;
+        dialogItems.clear();
+        dialogItems.addAll(getInitialItems());
     }
 
     @Override
@@ -27,22 +32,22 @@ public class HomeSectionsSettingsDialog extends ReorderDialog {
 
     @NonNull
     protected List<ReorderDialogItem> getInitialItems() {
-        final List<String> sectionTags = HomePreferences.getSortedSectionTags(context);
-        final List<String> hiddenSectionTags = HomePreferences.getHiddenSectionTags(context);
+        final List<String> sectionTags = HomePreferences.getSortedSectionTags(context, playlists);
+        final List<String> hiddenSectionTags = HomePreferences.getHiddenSectionTags(context, playlists);
 
         ArrayList<ReorderDialogItem> settingsDialogItems = new ArrayList<>();
         settingsDialogItems.add(new ReorderDialogItem(ReorderDialogItem.ViewType.Header,
                 TAG_SHOWN, context.getString(R.string.section_shown)));
         for (String sectionTag: sectionTags) {
             settingsDialogItems.add(new ReorderDialogItem(ReorderDialogItem.ViewType.Section, sectionTag,
-                    HomePreferences.getNameFromTag(context, sectionTag)));
+                    HomePreferences.getNameFromTag(context, sectionTag, playlists)));
         }
 
         settingsDialogItems.add(new ReorderDialogItem(ReorderDialogItem.ViewType.Header,
                 TAG_HIDDEN, context.getString(R.string.section_hidden)));
         for (String sectionTag: hiddenSectionTags) {
             settingsDialogItems.add(new ReorderDialogItem(ReorderDialogItem.ViewType.Section, sectionTag,
-                    HomePreferences.getNameFromTag(context, sectionTag)));
+                    HomePreferences.getNameFromTag(context, sectionTag, playlists)));
         }
         return settingsDialogItems;
     }

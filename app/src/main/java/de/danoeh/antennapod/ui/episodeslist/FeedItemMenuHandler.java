@@ -32,6 +32,7 @@ import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.storage.preferences.UserPreferences;
 import de.danoeh.antennapod.ui.appstartintent.MediaButtonStarter;
+import de.danoeh.antennapod.ui.screen.playlist.AddToPlaylistDialog;
 import de.danoeh.antennapod.ui.view.LocalDeleteModal;
 import org.greenrobot.eventbus.EventBus;
 
@@ -61,6 +62,7 @@ public class FeedItemMenuHandler {
         boolean canSkip = false;
         boolean canRemoveFromQueue = false;
         boolean canAddToQueue = false;
+        boolean canAddToPlaylist = false;
         boolean canVisitWebsite = false;
         boolean canShare = false;
         boolean canRemoveFromInbox = false;
@@ -81,6 +83,7 @@ public class FeedItemMenuHandler {
             canSkip |= hasMedia && PlaybackStatus.isPlaying(item.getMedia());
             canRemoveFromQueue |= item.isTagged(FeedItem.TAG_QUEUE);
             canAddToQueue |= hasMedia && !item.isTagged(FeedItem.TAG_QUEUE);
+            canAddToPlaylist |= hasMedia;
             canVisitWebsite |= !item.getFeed().isLocalFeed() && ShareUtils.hasLinkToShare(item);
             canShare |= !item.getFeed().isLocalFeed();
             canRemoveFromInbox |= item.isNew();
@@ -108,6 +111,7 @@ public class FeedItemMenuHandler {
         setItemVisibility(menu, R.id.skip_episode_item, canSkip);
         setItemVisibility(menu, R.id.remove_from_queue_item, canRemoveFromQueue);
         setItemVisibility(menu, R.id.add_to_queue_item, canAddToQueue);
+        setItemVisibility(menu, R.id.add_to_playlist_item, canAddToPlaylist);
         setItemVisibility(menu, R.id.visit_website_item, canVisitWebsite);
         setItemVisibility(menu, R.id.share_item, canShare);
         setItemVisibility(menu, R.id.remove_inbox_item, canRemoveFromInbox);
@@ -200,6 +204,8 @@ public class FeedItemMenuHandler {
             DBWriter.addQueueItem(context, selectedItem);
         } else if (menuItemId == R.id.remove_from_queue_item) {
             DBWriter.removeQueueItem(context, true, selectedItem);
+        } else if (menuItemId == R.id.add_to_playlist_item) {
+            AddToPlaylistDialog.show(fragment.requireActivity(), Collections.singletonList(selectedItem));
         } else if (menuItemId == R.id.add_to_favorites_item) {
             DBWriter.addFavoriteItems(Collections.singletonList(selectedItem));
         } else if (menuItemId == R.id.remove_from_favorites_item) {

@@ -10,6 +10,7 @@ import de.danoeh.antennapod.ui.screen.download.CompletedDownloadsFragment;
 import de.danoeh.antennapod.ui.screen.feed.FeedItemlistFragment;
 import de.danoeh.antennapod.ui.screen.InboxFragment;
 import de.danoeh.antennapod.ui.screen.PlaybackHistoryFragment;
+import de.danoeh.antennapod.ui.screen.playlist.PlaylistFragment;
 import de.danoeh.antennapod.ui.screen.queue.QueueFragment;
 
 public class SwipePreferencesFragment extends AnimatedPreferenceFragment {
@@ -20,6 +21,7 @@ public class SwipePreferencesFragment extends AnimatedPreferenceFragment {
     private static final String PREF_SWIPE_FEED = "prefSwipeFeed";
     private static final String PREF_SWIPE_HISTORY = "prefSwipeHistory";
     private static final String PREF_SWIPE_FAVORITES = "prefSwipeFavorites";
+    private static final String PREF_SWIPE_PLAYLIST = "prefSwipePlaylist";
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -51,6 +53,10 @@ public class SwipePreferencesFragment extends AnimatedPreferenceFragment {
         });
         findPreference(PREF_SWIPE_FAVORITES).setOnPreferenceClickListener(preference -> {
             new SwipeActionsDialog(requireContext(), FavoritesFragment.TAG).show(() -> { });
+            return true;
+        });
+        findPreference(PREF_SWIPE_PLAYLIST).setOnPreferenceClickListener(preference -> {
+            new SwipeActionsDialog(requireContext(), PlaylistFragment.TAG).show(() -> { });
             return true;
         });
     }

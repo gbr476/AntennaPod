@@ -18,6 +18,7 @@ import de.danoeh.antennapod.model.feed.FeedItemFilter;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.model.feed.SortOrder;
 import de.danoeh.antennapod.storage.database.DBReader;
+import de.danoeh.antennapod.storage.database.LongList;
 import de.danoeh.antennapod.storage.database.DBWriter;
 import de.danoeh.antennapod.storage.preferences.UserPreferences;
 
@@ -96,11 +97,13 @@ public class APCleanupAlgorithm extends EpisodeCleanupAlgorithm {
                 new FeedItemFilter(FeedItemFilter.DOWNLOADED), SortOrder.DATE_NEW_OLD);
 
         Date mostRecentDateForDeletion = calcMostRecentDateForDeletion(new Date());
+        LongList playlistItemIds = DBReader.getAllPlaylistItemIds();
         for (FeedItem item : downloadedItems) {
             if (item.hasMedia()
                     && item.getMedia().isDownloaded()
                     && (!item.getFeed().isLocalFeed() || UserPreferences.isAutoDeleteLocal())
                     && !item.isTagged(FeedItem.TAG_QUEUE)
+                    && !playlistItemIds.contains(item.getId())
                     && item.isPlayed()
                     && !item.isTagged(FeedItem.TAG_FAVORITE)) {
                 FeedMedia media = item.getMedia();

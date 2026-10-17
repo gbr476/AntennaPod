@@ -25,10 +25,12 @@
     <item name="home_section_surprise" type="id"/>
     <item name="home_section_subscriptions" type="id"/>
     <item name="home_section_downloads" type="id"/>
+    <item name="home_section_playlists" type="id"/>
 
     <!-- Bottom navigation -->
     <item name="bottom_navigation_home" type="id"/>
     <item name="bottom_navigation_queue" type="id"/>
+    <item name="bottom_navigation_playlists" type="id"/>
     <item name="bottom_navigation_inbox" type="id"/>
     <item name="bottom_navigation_episodes" type="id"/>
     <item name="bottom_navigation_downloads" type="id"/>

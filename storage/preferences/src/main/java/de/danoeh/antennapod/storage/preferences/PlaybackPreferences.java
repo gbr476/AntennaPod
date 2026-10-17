@@ -64,6 +64,10 @@ public abstract class PlaybackPreferences {
     private static final String PREF_CURRENTLY_PLAYING_TEMPORARY_SKIP_SILENCE
             = "de.danoeh.antennapod.preferences.temporarySkipSilence";
 
+    private static final String PREF_CURRENT_PLAYLIST_ID = "de.danoeh.antennapod.preferences.currentPlaylistId";
+    private static final String PREF_CURRENT_PLAYLIST_ITEM_ID
+            = "de.danoeh.antennapod.preferences.currentPlaylistItemId";
+
     /**
      * Value of PREF_CURRENTLY_PLAYING_MEDIA if no media is playing.
      */
@@ -83,6 +87,8 @@ public abstract class PlaybackPreferences {
      * Value of PREF_CURRENT_PLAYER_STATUS if media player status is neither playing nor paused.
      */
     public static final int PLAYER_STATUS_OTHER = 3;
+
+    public static final long NO_PLAYLIST = 0;
 
     private static SharedPreferences prefs;
 
@@ -111,6 +117,19 @@ public abstract class PlaybackPreferences {
 
     public static void setCurrentPlayerStatus(int playerStatus) {
         prefs.edit().putInt(PREF_CURRENT_PLAYER_STATUS, playerStatus).apply();
+    }
+
+    public static long getCurrentPlaylistId() {
+        return prefs.getLong(PREF_CURRENT_PLAYLIST_ID, NO_PLAYLIST);
+    }
+
+    public static long getCurrentPlaylistItemId() {
+        return prefs.getLong(PREF_CURRENT_PLAYLIST_ITEM_ID, 0);
+    }
+
+    public static void setCurrentPlaylist(long playlistId, long itemId) {
+        prefs.edit().putLong(PREF_CURRENT_PLAYLIST_ID, playlistId)
+                .putLong(PREF_CURRENT_PLAYLIST_ITEM_ID, itemId).apply();
     }
 
     public static float getCurrentlyPlayingTemporaryPlaybackSpeed() {

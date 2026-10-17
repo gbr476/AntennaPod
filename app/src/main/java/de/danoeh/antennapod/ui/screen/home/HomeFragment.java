@@ -27,6 +27,8 @@ import de.danoeh.antennapod.ui.screen.home.sections.DownloadsSection;
 import de.danoeh.antennapod.ui.screen.home.sections.EchoSection;
 import de.danoeh.antennapod.ui.screen.home.sections.EpisodesSurpriseSection;
 import de.danoeh.antennapod.ui.screen.home.sections.InboxSection;
+import de.danoeh.antennapod.ui.screen.home.sections.PlaylistSection;
+import de.danoeh.antennapod.ui.screen.home.sections.PlaylistsSection;
 import de.danoeh.antennapod.ui.screen.home.sections.QueueSection;
 import de.danoeh.antennapod.ui.screen.home.sections.SubscriptionsSection;
 import de.danoeh.antennapod.ui.screen.home.settingsdialog.HomePreferences;
@@ -52,9 +54,11 @@ public class HomeFragment extends Fragment implements Toolbar.OnMenuItemClickLis
     public static final String PREF_HIDE_ECHO = "HideEcho";
 
     private static final String KEY_UP_ARROW = "up_arrow";
+    private static final int PLAYLIST_SECTION_ID_BASE = 0x02000000;
     private boolean displayUpArrow;
     private HomeFragmentBinding viewBinding;
     private Disposable disposable;
+    private Disposable settingsDisposable;
 
     @NonNull
     @Override
@@ -103,23 +107,31 @@ public class HomeFragment extends Fragment implements Toolbar.OnMenuItemClickLis
     }
 
     private int getSectionContainerId(String sectionTag) {
+        if (PlaylistSection.isPlaylistSectionTag(sectionTag)) {
+            return PLAYLIST_SECTION_ID_BASE + (int) PlaylistSection.playlistIdFromTag(sectionTag);
+        }
         return switch (sectionTag) {
             case QueueSection.TAG -> R.id.home_section_queue;
             case InboxSection.TAG -> R.id.home_section_inbox;
             case EpisodesSurpriseSection.TAG -> R.id.home_section_surprise;
             case SubscriptionsSection.TAG -> R.id.home_section_subscriptions;
             case DownloadsSection.TAG -> R.id.home_section_downloads;
+            case PlaylistsSection.TAG -> R.id.home_section_playlists;
             default -> throw new IllegalArgumentException("Unknown section tag: " + sectionTag);
         };
     }
 
     private Fragment getSection(String tag) {
+        if (PlaylistSection.isPlaylistSectionTag(tag)) {
+            return PlaylistSection.newInstance(PlaylistSection.playlistIdFromTag(tag));
+        }
         return switch (tag) {
             case QueueSection.TAG -> new QueueSection();
             case InboxSection.TAG -> new InboxSection();
             case EpisodesSurpriseSection.TAG -> new EpisodesSurpriseSection();
             case SubscriptionsSection.TAG -> new SubscriptionsSection();
             case DownloadsSection.TAG -> new DownloadsSection();
+            case PlaylistsSection.TAG -> new PlaylistsSection();
             default -> null;
         };
     }
@@ -132,7 +144,7 @@ public class HomeFragment extends Fragment implements Toolbar.OnMenuItemClickLis
     @Override
     public boolean onMenuItemClick(MenuItem item) {
         if (item.getItemId() == R.id.homesettings_items) {
-            new HomeSectionsSettingsDialog(getContext(), this::populateSectionList).show();
+            showSectionsSettingsDialog();
             return true;
         } else if (item.getItemId() == R.id.refresh_item) {
             FeedUpdateManager.getInstance().runOnceOrAsk(requireContext());
@@ -142,6 +154,20 @@ public class HomeFragment extends Fragment implements Toolbar.OnMenuItemClickLis
             return true;
         }
         return false;
+    }
+
+    private void showSectionsSettingsDialog() {
+        if (settingsDisposable != null) {
+            settingsDisposable.dispose();
+        }
+        settingsDisposable = Observable.fromCallable(DBReader::getPlaylists)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(playlists -> {
+                    if (viewBinding != null) {
+                        new HomeSectionsSettingsDialog(getContext(), playlists, this::populateSectionList).show();
+                    }
+                }, error -> Log.e(TAG, Log.getStackTraceString(error)));
     }
 
     @Override
@@ -167,6 +193,9 @@ public class HomeFragment extends Fragment implements Toolbar.OnMenuItemClickLis
         super.onDestroyView();
         if (disposable != null) {
             disposable.dispose();
+        }
+        if (settingsDisposable != null) {
+            settingsDisposable.dispose();
         }
         viewBinding = null;
     }

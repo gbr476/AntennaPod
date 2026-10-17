@@ -23,6 +23,7 @@ import de.danoeh.antennapod.ui.screen.download.CompletedDownloadsFragment;
 import de.danoeh.antennapod.ui.screen.FavoritesFragment;
 import de.danoeh.antennapod.ui.screen.InboxFragment;
 import de.danoeh.antennapod.ui.screen.PlaybackHistoryFragment;
+import de.danoeh.antennapod.ui.screen.playlist.PlaylistFragment;
 import de.danoeh.antennapod.ui.screen.queue.QueueFragment;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedItemFilter;
@@ -41,7 +42,8 @@ public class SwipeActions extends ItemTouchHelper.SimpleCallback implements Life
                     new RemoveFromFavoritesSwipeAction(), new TogglePlaybackStateSwipeAction(),
                     new RemoveFromQueueSwipeAction(), new DeleteSwipeAction(),
                     new RemoveFromHistorySwipeAction(), new MoveToTopSwipeAction(),
-                    new MoveToBottomSwipeAction(), new ShareSwipeAction()));
+                    new MoveToBottomSwipeAction(), new ShareSwipeAction(),
+                    new AddToPlaylistSwipeAction(), new RemoveFromPlaylistSwipeAction()));
 
     private final Fragment fragment;
     private final String tag;
@@ -119,6 +121,9 @@ public class SwipeActions extends ItemTouchHelper.SimpleCallback implements Life
                 break;
             case FavoritesFragment.TAG:
                 defaultActions = SwipeAction.REMOVE_FROM_FAVORITES + "," + SwipeAction.REMOVE_FROM_FAVORITES;
+                break;
+            case PlaylistFragment.TAG:
+                defaultActions = SwipeAction.REMOVE_FROM_PLAYLIST + "," + SwipeAction.REMOVE_FROM_PLAYLIST;
                 break;
             default:
             case AllEpisodesFragment.TAG:

@@ -7,9 +7,11 @@ import java.util.List;
 
 import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.model.feed.FeedItem;
+import de.danoeh.antennapod.model.feed.Playlist;
 import de.danoeh.antennapod.net.download.serviceinterface.AutoDownloadManager;
 import de.danoeh.antennapod.net.sync.serviceinterface.SynchronizationQueue;
 import de.danoeh.antennapod.net.sync.serviceinterface.SynchronizationQueueStub;
+import de.danoeh.antennapod.storage.database.PodDBAdapter;
 import de.danoeh.antennapod.storage.preferences.UserPreferences;
 
 import org.junit.Test;
@@ -52,6 +54,29 @@ public class DbQueueCleanupAlgorithmTest extends DbCleanupTests {
             } else {
                 assertFalse(files.get(i).exists());
             }
+        }
+    }
+
+    @Test
+    public void testPerformAutoCleanupKeepsPlaylistItems() throws IOException {
+        final int numItems = EPISODE_CACHE_SIZE * 2;
+
+        Feed feed = new Feed("url", null, "title");
+        List<FeedItem> items = new ArrayList<>();
+        feed.setItems(items);
+        List<File> files = new ArrayList<>();
+        populateItems(numItems, feed, items, files, FeedItem.UNPLAYED, false, false);
+
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        Playlist playlist = new Playlist("Commute", false);
+        adapter.setPlaylist(playlist);
+        adapter.setPlaylistItems(playlist.getId(), items);
+        adapter.close();
+
+        AutoDownloadManager.getInstance().performAutoCleanup(context);
+        for (File file : files) {
+            assertTrue(file.exists());
         }
     }
 }

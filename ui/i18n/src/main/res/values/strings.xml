@@ -20,6 +20,8 @@
     <string name="home_label_short">Home</string>
     <string name="queue_label">Queue</string>
     <string name="queue_label_short">Queue</string>
+    <string name="playlists_label">Playlists</string>
+    <string name="playlists_label_short">Playlists</string>
     <string name="inbox_label">Inbox</string>
     <string name="inbox_label_short">Inbox</string>
     <string name="favorite_episodes_label">Favorites</string>
@@ -417,6 +419,38 @@
     <string name="size">Size</string>
     <string name="clear_queue_confirmation_msg">Please confirm that you want to remove ALL episodes from the queue.</string>
     <string name="queue_time_left_label">%1$s • %2$s left</string>
+    <string name="add_to_playlist_label">Add to playlist</string>
+    <plurals name="added_to_playlist_message">
+        <item quantity="one">%1$d episode added to %2$s.</item>
+        <item quantity="other">%1$d episodes added to %2$s.</item>
+    </plurals>
+    <plurals name="added_to_playlists_message">
+        <item quantity="one">%1$d episode added to %2$d playlists.</item>
+        <item quantity="other">%1$d episodes added to %2$d playlists.</item>
+    </plurals>
+    <string name="remove_from_playlist_label">Remove from playlist</string>
+    <plurals name="removed_from_playlist_message">
+        <item quantity="one">%d episode removed from playlist.</item>
+        <item quantity="other">%d episodes removed from playlist.</item>
+    </plurals>
+    <string name="new_playlist_label">New playlist</string>
+    <string name="rename_playlist_label">Rename playlist</string>
+    <string name="delete_playlist_label">Delete playlist</string>
+    <string name="delete_playlist_confirmation_msg">Delete the playlist \"%1$s\"? The episodes themselves are not deleted.</string>
+    <string name="playlist_name_hint">Playlist name</string>
+    <string name="playlist_remove_after_played_label">Remove episodes after they finish playing</string>
+    <string name="playlist_removes_played_episodes">%1$s • Removes finished episodes</string>
+    <string name="play_order_label">Play order</string>
+    <string name="play_order_top_to_bottom">Top to bottom</string>
+    <string name="play_order_bottom_to_top">Bottom to top</string>
+    <string name="playlist_plays_bottom_to_top">%1$s • Plays bottom to top</string>
+    <string name="manage_playlists_label">Manage</string>
+    <string name="open_playlist_label">Open</string>
+    <string name="home_section_playlist">Playlist: %1$s</string>
+    <string name="no_playlists_header_label">No playlists</string>
+    <string name="no_playlists_label">Create a playlist, then long press an episode and select \"Add to playlist\".</string>
+    <string name="no_playlist_items_header_label">This playlist is empty</string>
+    <string name="no_playlist_items_label">Long press an episode and select \"Add to playlist\".</string>
 
     <!--  Variable Speed -->
     <string name="speed_presets">Presets</string>

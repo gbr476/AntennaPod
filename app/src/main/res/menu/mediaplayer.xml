@@ -44,6 +44,14 @@
     </item>
 
     <item
+        android:id="@+id/add_to_playlist_item"
+        android:icon="@drawable/ic_playlist_add"
+        custom:showAsAction="collapseActionView"
+        android:title="@string/add_to_playlist_label"
+        android:visible="false">
+    </item>
+
+    <item
         android:id="@+id/open_feed_item"
         android:icon="@drawable/ic_feed"
         custom:showAsAction="collapseActionView"

@@ -7,6 +7,7 @@ import de.danoeh.antennapod.event.MessageEvent;
 import de.danoeh.antennapod.storage.database.DBWriter;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedItemFilter;
+import de.danoeh.antennapod.ui.screen.playlist.PlaylistFragment;
 import java.util.Collections;
 import org.greenrobot.eventbus.EventBus;
 
@@ -34,7 +35,12 @@ public class MoveToTopSwipeAction implements SwipeAction {
 
     @Override
     public void performAction(FeedItem item, Fragment fragment, FeedItemFilter filter) {
-        DBWriter.moveQueueItemsToTop(Collections.singletonList(item));
+        if (fragment instanceof PlaylistFragment) {
+            DBWriter.movePlaylistItems(((PlaylistFragment) fragment).getPlaylistId(),
+                    Collections.singletonList(item), true);
+        } else {
+            DBWriter.moveQueueItemsToTop(Collections.singletonList(item));
+        }
         EventBus.getDefault().post(new MessageEvent(
                 fragment.getResources().getQuantityString(R.plurals.move_to_top_message, 1, 1)));
     }

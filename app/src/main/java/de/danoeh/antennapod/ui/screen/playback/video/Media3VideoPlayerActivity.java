@@ -38,6 +38,7 @@ import de.danoeh.antennapod.ui.screen.playback.SleepTimerDialog;
 import de.danoeh.antennapod.ui.screen.playback.TranscriptDialogFragment;
 import de.danoeh.antennapod.ui.screen.playback.VariableSpeedDialog;
 import de.danoeh.antennapod.ui.screen.playback.PlaybackControlsDialog;
+import de.danoeh.antennapod.ui.screen.playlist.AddToPlaylistDialog;
 import de.danoeh.antennapod.ui.share.ShareDialog;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Maybe;
@@ -309,6 +310,8 @@ public class Media3VideoPlayerActivity extends AppCompatActivity implements Tool
             IntentUtils.openInBrowser(this, getWebsiteLinkWithFallback(currentMedia));
         } else if (item.getItemId() == R.id.share_item) {
             ShareDialog.newInstance(currentMedia.getItem()).show(getSupportFragmentManager(), "ShareDialog");
+        } else if (item.getItemId() == R.id.add_to_playlist_item) {
+            AddToPlaylistDialog.show(this, Collections.singletonList(currentMedia.getItem()));
         } else {
             return false;
         }

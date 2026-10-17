@@ -30,6 +30,7 @@ import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedItemFilter;
 import de.danoeh.antennapod.model.feed.FeedMedia;
+import de.danoeh.antennapod.model.feed.Playlist;
 import de.danoeh.antennapod.model.feed.SortOrder;
 import de.danoeh.antennapod.playback.base.MediaItemAdapter;
 import de.danoeh.antennapod.playback.base.RewindAfterPauseUtils;
@@ -55,10 +56,13 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
     private static final String MEDIA_ID_EPISODES = "episodes";
     private static final String MEDIA_ID_SUBSCRIPTIONS = "subscriptions";
     private static final String MEDIA_ID_CONTINUE_LISTENING = "continue_listening";
+    private static final String MEDIA_ID_PLAYLISTS = "playlists";
+    private static final String MEDIA_ID_PLAYLIST_PREFIX = "PlaylistId:";
+    private static final String MEDIA_ID_PLAYLIST_ITEM_PREFIX = "PlaylistItem:";
     private static final int CONTINUE_LISTENING_NUM_EPISODES = 8;
     private static final ImmutableList<String> BROWSABLE_MEDIA_IDS = ImmutableList.of(
             MEDIA_ID_ROOT, MEDIA_ID_QUEUE, MEDIA_ID_DOWNLOADS, MEDIA_ID_EPISODES,
-            MEDIA_ID_SUBSCRIPTIONS, MEDIA_ID_CONTINUE_LISTENING);
+            MEDIA_ID_SUBSCRIPTIONS, MEDIA_ID_CONTINUE_LISTENING, MEDIA_ID_PLAYLISTS);
 
     protected static final SessionCommand SESSION_COMMAND_REWIND
             = new SessionCommand("rewind", Bundle.EMPTY);
@@ -411,7 +415,8 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
     public ListenableFuture<LibraryResult<MediaItem>> onGetItem(
             @NonNull MediaLibraryService.MediaLibrarySession session,
             @NonNull MediaSession.ControllerInfo browser, @NonNull String mediaId) {
-        if (BROWSABLE_MEDIA_IDS.contains(mediaId) || mediaId.startsWith(MediaItemAdapter.MEDIA_ID_FEED_PREFIX)) {
+        if (BROWSABLE_MEDIA_IDS.contains(mediaId) || mediaId.startsWith(MediaItemAdapter.MEDIA_ID_FEED_PREFIX)
+                || mediaId.startsWith(MEDIA_ID_PLAYLIST_PREFIX)) {
             SettableFuture<LibraryResult<MediaItem>> future = SettableFuture.create();
             Single.fromCallable(() -> createBrowsableMediaItem(mediaId))
                     .subscribeOn(Schedulers.io())
@@ -436,6 +441,7 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
                 Single.fromCallable(() -> ImmutableList.of(
                                 createBrowsableMediaItem(MEDIA_ID_CONTINUE_LISTENING),
                                 createBrowsableMediaItem(MEDIA_ID_QUEUE),
+                                createBrowsableMediaItem(MEDIA_ID_PLAYLISTS),
                                 createBrowsableMediaItem(MEDIA_ID_DOWNLOADS),
                                 createBrowsableMediaItem(MEDIA_ID_EPISODES),
                                 createBrowsableMediaItem(MEDIA_ID_SUBSCRIPTIONS)))
@@ -458,6 +464,19 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
                                 },
                                 future::setException);
                 return future;
+            case MEDIA_ID_PLAYLISTS:
+                Single.fromCallable(DBReader::getPlaylists)
+                        .subscribeOn(Schedulers.io())
+                        .subscribe(
+                                playlists -> {
+                                    ImmutableList.Builder<MediaItem> builder = new ImmutableList.Builder<>();
+                                    for (Playlist playlist : playlists) {
+                                        builder.add(createPlaylistMediaItem(playlist));
+                                    }
+                                    future.set(LibraryResult.ofItemList(builder.build(), params));
+                                },
+                                future::setException);
+                return future;
             case MEDIA_ID_CONTINUE_LISTENING:
                 Single.fromCallable(
                                 () -> DBReader.getPausedQueue(CONTINUE_LISTENING_NUM_EPISODES))
@@ -472,6 +491,23 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
                         );
                 return future;
             default: // Episodes lists
+                if (parentId.startsWith(MEDIA_ID_PLAYLIST_PREFIX)) {
+                    long playlistId = Long.parseLong(parentId.substring(MEDIA_ID_PLAYLIST_PREFIX.length()));
+                    Single.fromCallable(() -> {
+                        ImmutableList.Builder<MediaItem> builder = new ImmutableList.Builder<>();
+                        for (MediaItem item : MediaItemAdapter.fromItemList(context,
+                                DBReader.getPlaylistItems(playlistId))) {
+                            builder.add(item.buildUpon()
+                                    .setMediaId(MEDIA_ID_PLAYLIST_ITEM_PREFIX + playlistId + ":" + item.mediaId)
+                                    .build());
+                        }
+                        return builder.build();
+                    })
+                            .subscribeOn(Schedulers.io())
+                            .subscribe(items -> future.set(LibraryResult.ofItemList(items, params)),
+                                    future::setException);
+                    return future;
+                }
                 Single.fromCallable(() -> {
                     if (parentId.startsWith(MediaItemAdapter.MEDIA_ID_FEED_PREFIX)) {
                         long feedId = Long.parseLong(parentId.split(":")[1]);
@@ -536,11 +572,21 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
         ImmutableList.Builder<MediaItem> builder = ImmutableList.builder();
         for (MediaItem item : mediaItems) {
             try {
-                long mediaId = Long.parseLong(item.mediaId);
+                String mediaIdString = item.mediaId;
+                long playlistId = PlaybackPreferences.NO_PLAYLIST;
+                if (mediaIdString.startsWith(MEDIA_ID_PLAYLIST_ITEM_PREFIX)) {
+                    String[] parts = mediaIdString.substring(MEDIA_ID_PLAYLIST_ITEM_PREFIX.length()).split(":");
+                    playlistId = Long.parseLong(parts[0]);
+                    mediaIdString = parts[1];
+                }
+                long mediaId = Long.parseLong(mediaIdString);
                 FeedMedia media = DBReader.getFeedMedia(mediaId);
                 if (media == null) {
                     Log.e(TAG, "Media not found for ID: " + mediaId);
                     continue;
+                }
+                if (playlistId != PlaybackPreferences.NO_PLAYLIST) {
+                    PlaybackPreferences.setCurrentPlaylist(playlistId, media.getItemId());
                 }
                 builder.add(MediaItemAdapter.fromPlayable(context, media, false));
             } catch (NumberFormatException e) {
@@ -550,12 +596,26 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
         return builder.build();
     }
 
+    private MediaItem createPlaylistMediaItem(Playlist playlist) {
+        return MediaItemAdapter.from(context, MEDIA_ID_PLAYLIST_PREFIX + playlist.getId(),
+                playlist.getTitle(), R.drawable.ic_playlists_black,
+                context.getResources().getQuantityString(R.plurals.num_episodes,
+                        playlist.getEpisodeCount(), playlist.getEpisodeCount()));
+    }
+
     @WorkerThread
     private MediaItem createBrowsableMediaItem(String id) {
         if (id.startsWith(MediaItemAdapter.MEDIA_ID_FEED_PREFIX)) {
             long feedId = Long.parseLong(id.split(":")[1]);
             Feed feed = DBReader.getFeed(feedId, false, 0, 0);
             return MediaItemAdapter.fromFeed(context, feed);
+        }
+        if (id.startsWith(MEDIA_ID_PLAYLIST_PREFIX)) {
+            Playlist playlist = DBReader.getPlaylist(Long.parseLong(id.substring(MEDIA_ID_PLAYLIST_PREFIX.length())));
+            if (playlist == null) {
+                throw new IllegalArgumentException("Playlist not found: " + id);
+            }
+            return createPlaylistMediaItem(playlist);
         }
         switch (id) {
             case MEDIA_ID_ROOT:
@@ -579,6 +639,9 @@ public class MediaLibrarySessionCallback implements MediaLibraryService.MediaLib
                         context.getString(R.string.episodes_label), R.drawable.ic_feed_black,
                         context.getResources().getQuantityString(R.plurals.num_episodes, numEpisodes, numEpisodes));
             }
+            case MEDIA_ID_PLAYLISTS:
+                return MediaItemAdapter.from(context, MEDIA_ID_PLAYLISTS,
+                        context.getString(R.string.playlists_label), R.drawable.ic_playlists_black, null);
             case MEDIA_ID_SUBSCRIPTIONS:
                 return MediaItemAdapter.from(context, MEDIA_ID_SUBSCRIPTIONS,
                         context.getString(R.string.subscriptions_label), R.drawable.ic_subscriptions_black, null);

@@ -22,6 +22,7 @@ import de.danoeh.antennapod.model.feed.FeedItemFilter;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.model.feed.FeedOrder;
 import de.danoeh.antennapod.model.feed.FeedPreferences;
+import de.danoeh.antennapod.model.feed.Playlist;
 import de.danoeh.antennapod.model.feed.SortOrder;
 import de.danoeh.antennapod.model.feed.SubscriptionsFilter;
 import de.danoeh.antennapod.model.download.DownloadResult;
@@ -424,6 +425,85 @@ public final class DBReader {
             }
             return null;
         } catch (Exception e) {
+            return null;
+        } finally {
+            adapter.close();
+        }
+    }
+
+    @NonNull
+    public static synchronized List<Playlist> getPlaylists() {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (Cursor cursor = adapter.getPlaylistsCursor()) {
+            List<Playlist> playlists = new ArrayList<>(cursor.getCount());
+            while (cursor.moveToNext()) {
+                playlists.add(new Playlist(cursor.getLong(0), cursor.getString(1),
+                        cursor.getInt(2) != 0, cursor.getInt(3) != 0, cursor.getInt(4)));
+            }
+            return playlists;
+        } finally {
+            adapter.close();
+        }
+    }
+
+    @Nullable
+    public static synchronized Playlist getPlaylist(long playlistId) {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (Cursor cursor = adapter.getPlaylistCursor(playlistId)) {
+            if (cursor.moveToFirst()) {
+                return new Playlist(cursor.getLong(0), cursor.getString(1),
+                        cursor.getInt(2) != 0, cursor.getInt(3) != 0, cursor.getInt(4));
+            }
+            return null;
+        } finally {
+            adapter.close();
+        }
+    }
+
+    @NonNull
+    public static synchronized List<FeedItem> getPlaylistItems(long playlistId) {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (FeedItemCursor cursor = new FeedItemCursor(adapter.getPlaylistItemsCursor(playlistId))) {
+            List<FeedItem> items = extractItemlistFromCursor(cursor);
+            loadFeedDataOfFeedItemList(items);
+            return items;
+        } finally {
+            adapter.close();
+        }
+    }
+
+    public static synchronized LongList getAllPlaylistItemIds() {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (Cursor cursor = adapter.getAllPlaylistItemIdsCursor()) {
+            LongList itemIds = new LongList(cursor.getCount());
+            while (cursor.moveToNext()) {
+                itemIds.add(cursor.getLong(0));
+            }
+            return itemIds;
+        } finally {
+            adapter.close();
+        }
+    }
+
+    @Nullable
+    public static synchronized FeedItem getNextInPlaylist(long playlistId, FeedItem item) {
+        Playlist playlist = getPlaylist(playlistId);
+        if (playlist == null) {
+            return null;
+        }
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (FeedItemCursor cursor = new FeedItemCursor(
+                adapter.getNextInPlaylistCursor(playlistId, item, playlist.isReversePlayOrder()))) {
+            List<FeedItem> list = extractItemlistFromCursor(cursor);
+            if (!list.isEmpty()) {
+                loadFeedDataOfFeedItemList(list);
+                return list.get(0);
+            }
             return null;
         } finally {
             adapter.close();

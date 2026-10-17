@@ -244,6 +244,7 @@
         <item>@string/home_surprise_title</item>
         <item>@string/home_classics_title</item>
         <item>@string/home_downloads_title</item>
+        <item>@string/playlists_label</item>
     </string-array>
 
     <string-array name="home_section_tags">
@@ -252,6 +253,7 @@
         <item>EpisodesSurpriseSection</item>
         <item>SubscriptionsSection</item>
         <item>DownloadsSection</item>
+        <item>PlaylistsSection</item>
     </string-array>
 
     <string-array name="full_notification_buttons_options">

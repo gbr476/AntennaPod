@@ -565,6 +565,10 @@ public class Media3PlaybackService extends MediaLibraryService {
                     }
                     FeedMedia media = DBReader.getFeedMedia(mediaId);
                     ChapterUtils.loadChapters(media, this, false);
+                    if (PlaybackPreferences.getCurrentPlaylistId() != PlaybackPreferences.NO_PLAYLIST
+                            && PlaybackPreferences.getCurrentPlaylistItemId() != media.getItemId()) {
+                        PlaybackPreferences.setCurrentPlaylist(PlaybackPreferences.NO_PLAYLIST, 0);
+                    }
                     return media;
                 })
                         .subscribeOn(Schedulers.io())
@@ -574,7 +578,8 @@ public class Media3PlaybackService extends MediaLibraryService {
                                 return;
                             }
                             media.setPosition((int) player.getCurrentPosition());
-                            if (media.getItem() != null && !media.getItem().isTagged(FeedItem.TAG_QUEUE)) {
+                            if (media.getItem() != null && !media.getItem().isTagged(FeedItem.TAG_QUEUE)
+                                    && PlaybackPreferences.getCurrentPlaylistId() == PlaybackPreferences.NO_PLAYLIST) {
                                 DBWriter.addQueueItem(this, media.getItem());
                             }
                             switchToPlayable(media);
@@ -685,6 +690,7 @@ public class Media3PlaybackService extends MediaLibraryService {
         if (item != null) {
             if (ended || almostEnded) {
                 DBWriter.markItemsPlayed(FeedItem.PLAYED, true, Collections.singletonList(item));
+                DBWriter.removePlayedItemFromPlaylists(item);
             }
             if (ended || almostEnded || (skipped && !UserPreferences.shouldSkipKeepEpisode())) {
                 DBWriter.removeQueueItem(this, ended, item);
@@ -841,8 +847,15 @@ public class Media3PlaybackService extends MediaLibraryService {
         }
         int startPosition = playbackStartPosition;
         queueLoaderDisposable = Maybe.fromCallable(() -> {
-            FeedItem nextItem = DBReader.getNextInQueue(item);
+            long playlistId = PlaybackPreferences.getCurrentPlaylistId();
+            boolean fromPlaylist = playlistId != PlaybackPreferences.NO_PLAYLIST
+                    && PlaybackPreferences.getCurrentPlaylistItemId() == item.getId();
+            FeedItem nextItem = fromPlaylist
+                    ? DBReader.getNextInPlaylist(playlistId, item) : DBReader.getNextInQueue(item);
             boolean hasNext = nextItem != null && nextItem.getMedia() != null;
+            if (fromPlaylist && hasNext) {
+                PlaybackPreferences.setCurrentPlaylist(playlistId, nextItem.getId());
+            }
             updateDatabaseAfterPlayback(media, startPosition, ended, wasSkipped, hasNext);
             if (hasNext) {
                 return new Pair<>(nextItem.getMedia(),

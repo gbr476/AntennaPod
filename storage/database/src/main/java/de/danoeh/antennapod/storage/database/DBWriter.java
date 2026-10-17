@@ -38,6 +38,7 @@ import java.util.concurrent.Semaphore;
 import de.danoeh.antennapod.event.FeedItemEvent;
 import de.danoeh.antennapod.event.FeedListUpdateEvent;
 import de.danoeh.antennapod.event.playback.PlaybackHistoryEvent;
+import de.danoeh.antennapod.event.PlaylistEvent;
 import de.danoeh.antennapod.event.QueueEvent;
 import de.danoeh.antennapod.event.FeedEvent;
 import de.danoeh.antennapod.storage.preferences.PlaybackPreferences;
@@ -47,6 +48,7 @@ import de.danoeh.antennapod.model.feed.Feed;
 import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.model.feed.FeedPreferences;
+import de.danoeh.antennapod.model.feed.Playlist;
 import de.danoeh.antennapod.model.feed.SortOrder;
 import de.danoeh.antennapod.model.playback.Playable;
 import de.danoeh.antennapod.net.sync.serviceinterface.EpisodeAction;
@@ -246,6 +248,7 @@ public class DBWriter {
         for (FeedItem item : removedFromQueue) {
             EventBus.getDefault().post(QueueEvent.irreversibleRemoved(item));
         }
+        EventBus.getDefault().post(new PlaylistEvent(PlaylistEvent.ALL_PLAYLISTS));
         EventBus.getDefault().post(new FeedItemEvent(deleted, false));
 
         // we assume we also removed download log entries for the feed or its media files.
@@ -629,6 +632,138 @@ public class DBWriter {
             Log.w(TAG, "moveToTop: " + moveToTop +  " - Queue was not modified.");
         }
         adapter.close();
+    }
+
+    public static Future<?> createPlaylist(final Playlist playlist, final List<FeedItem> items) {
+        return runOnDbThread(() -> {
+            PodDBAdapter adapter = PodDBAdapter.getInstance();
+            adapter.open();
+            adapter.setPlaylist(playlist);
+            adapter.close();
+            addPlaylistItemsSynchronous(playlist.getId(), items);
+            EventBus.getDefault().post(new PlaylistEvent(playlist.getId()));
+        });
+    }
+
+    public static Future<?> setPlaylist(final Playlist playlist) {
+        return runOnDbThread(() -> {
+            PodDBAdapter adapter = PodDBAdapter.getInstance();
+            adapter.open();
+            adapter.setPlaylist(playlist);
+            adapter.close();
+            EventBus.getDefault().post(new PlaylistEvent(playlist.getId()));
+        });
+    }
+
+    public static Future<?> deletePlaylist(final long playlistId) {
+        return runOnDbThread(() -> {
+            PodDBAdapter adapter = PodDBAdapter.getInstance();
+            adapter.open();
+            adapter.removePlaylist(playlistId);
+            adapter.close();
+            EventBus.getDefault().post(new PlaylistEvent(playlistId));
+        });
+    }
+
+    public static Future<?> addPlaylistItems(final long playlistId, final List<FeedItem> items) {
+        return runOnDbThread(() -> {
+            addPlaylistItemsSynchronous(playlistId, items);
+            EventBus.getDefault().post(new PlaylistEvent(playlistId));
+        });
+    }
+
+    private static void addPlaylistItemsSynchronous(final long playlistId, final List<FeedItem> items) {
+        final List<FeedItem> playlistItems = DBReader.getPlaylistItems(playlistId);
+        boolean modified = false;
+        for (FeedItem item : items) {
+            if (item.hasMedia() && !itemListContains(playlistItems, item.getId())) {
+                playlistItems.add(item);
+                modified = true;
+            }
+        }
+        if (modified) {
+            setPlaylistItemsSynchronous(playlistId, playlistItems, false);
+        }
+    }
+
+    public static Future<?> setPlaylistItems(final long playlistId, final List<FeedItem> items) {
+        return runOnDbThread(() -> setPlaylistItemsSynchronous(playlistId, items, true));
+    }
+
+    public static Future<?> removePlaylistItems(final long playlistId, final List<FeedItem> items) {
+        return runOnDbThread(() -> {
+            final List<FeedItem> playlistItems = DBReader.getPlaylistItems(playlistId);
+            boolean modified = false;
+            for (FeedItem item : items) {
+                int position = indexInItemList(playlistItems, item.getId());
+                if (position >= 0) {
+                    playlistItems.remove(position);
+                    modified = true;
+                }
+            }
+            if (modified) {
+                setPlaylistItemsSynchronous(playlistId, playlistItems, true);
+            }
+        });
+    }
+
+    public static Future<?> movePlaylistItem(final long playlistId, final int from, final int to,
+                                             final boolean broadcastUpdate) {
+        return runOnDbThread(() -> {
+            final List<FeedItem> playlistItems = DBReader.getPlaylistItems(playlistId);
+            if (from >= 0 && from < playlistItems.size() && to >= 0 && to < playlistItems.size()) {
+                playlistItems.add(to, playlistItems.remove(from));
+                setPlaylistItemsSynchronous(playlistId, playlistItems, broadcastUpdate);
+            }
+        });
+    }
+
+    public static Future<?> movePlaylistItems(final long playlistId, final List<FeedItem> items,
+                                              final boolean moveToTop) {
+        return runOnDbThread(() -> {
+            final List<FeedItem> playlistItems = DBReader.getPlaylistItems(playlistId);
+            List<FeedItem> movedItems = new ArrayList<>();
+            for (FeedItem item : items) {
+                int position = indexInItemList(playlistItems, item.getId());
+                if (position >= 0) {
+                    movedItems.add(playlistItems.remove(position));
+                }
+            }
+            if (!movedItems.isEmpty()) {
+                playlistItems.addAll(moveToTop ? 0 : playlistItems.size(), movedItems);
+                setPlaylistItemsSynchronous(playlistId, playlistItems, true);
+            }
+        });
+    }
+
+    public static Future<?> sortPlaylist(final long playlistId, @NonNull final SortOrder sortOrder) {
+        final Permutor<FeedItem> permutor = FeedItemPermutors.getPermutor(sortOrder);
+        return runOnDbThread(() -> {
+            final List<FeedItem> playlistItems = DBReader.getPlaylistItems(playlistId);
+            permutor.reorder(playlistItems);
+            setPlaylistItemsSynchronous(playlistId, playlistItems, true);
+        });
+    }
+
+    public static Future<?> removePlayedItemFromPlaylists(final FeedItem item) {
+        return runOnDbThread(() -> {
+            PodDBAdapter adapter = PodDBAdapter.getInstance();
+            adapter.open();
+            adapter.removePlayedItemFromPlaylists(item.getId());
+            adapter.close();
+            EventBus.getDefault().post(new PlaylistEvent(PlaylistEvent.ALL_PLAYLISTS));
+        });
+    }
+
+    private static void setPlaylistItemsSynchronous(final long playlistId, final List<FeedItem> items,
+                                                    final boolean broadcastUpdate) {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        adapter.setPlaylistItems(playlistId, items);
+        adapter.close();
+        if (broadcastUpdate) {
+            EventBus.getDefault().post(new PlaylistEvent(playlistId));
+        }
     }
 
     public static Future<?> resetPagedFeedPage(Feed feed) {

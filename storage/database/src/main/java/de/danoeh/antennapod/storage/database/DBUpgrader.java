@@ -355,6 +355,14 @@ class DBUpgrader {
             db.execSQL("DELETE FROM " + PodDBAdapter.TABLE_NAME_FAVORITES + " WHERE " + PodDBAdapter.KEY_FEEDITEM
                     + " NOT IN (SELECT " + PodDBAdapter.KEY_ID + " FROM " + PodDBAdapter.TABLE_NAME_FEED_ITEMS + ")");
         }
+        if (oldVersion < 3120000) {
+            db.execSQL(PodDBAdapter.CREATE_TABLE_PLAYLISTS);
+            db.execSQL(PodDBAdapter.CREATE_TABLE_PLAYLIST_ITEMS);
+            db.execSQL(PodDBAdapter.CREATE_INDEX_PLAYLIST_ITEMS_FEEDITEM);
+        } else if (oldVersion < 3120001) {
+            db.execSQL("ALTER TABLE " + PodDBAdapter.TABLE_NAME_PLAYLISTS
+                    + " ADD COLUMN " + PodDBAdapter.KEY_REVERSE_PLAY_ORDER + " INTEGER DEFAULT 0");
+        }
     }
 
 }
