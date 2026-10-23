@@ -78,6 +78,23 @@
                 android:key="prefFollowQueue"
                 android:summary="@string/pref_followQueue_sum"
                 android:title="@string/pref_followQueue_title"/>
+        <SwitchPreferenceCompat
+                android:defaultValue="false"
+                android:key="prefPlayNextFeedEpisode"
+                android:summary="@string/pref_play_next_feed_episode_sum"
+                android:title="@string/pref_play_next_feed_episode_title"/>
+        <SwitchPreferenceCompat
+                android:defaultValue="false"
+                android:dependency="prefPlayNextFeedEpisode"
+                android:key="prefPlayNextFeedEpisodeStreamWifi"
+                android:summary="@string/pref_play_next_feed_episode_stream_sum"
+                android:title="@string/pref_play_next_feed_episode_stream_wifi_title"/>
+        <SwitchPreferenceCompat
+                android:defaultValue="false"
+                android:dependency="prefPlayNextFeedEpisode"
+                android:key="prefPlayNextFeedEpisodeStreamMobile"
+                android:summary="@string/pref_play_next_feed_episode_stream_sum"
+                android:title="@string/pref_play_next_feed_episode_stream_mobile_title"/>
         <de.danoeh.antennapod.ui.preferences.preference.MaterialListPreference
                 android:defaultValue="30"
                 android:entries="@array/smart_mark_as_played_values"

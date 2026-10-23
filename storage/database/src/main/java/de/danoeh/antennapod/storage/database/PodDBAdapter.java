@@ -56,7 +56,7 @@ public class PodDBAdapter {
 
     private static final String TAG = "PodDBAdapter";
     public static final String DATABASE_NAME = "Antennapod.db";
-    public static final int VERSION = 3120001;
+    public static final int VERSION = 3120002;
 
     /**
      * Maximum number of arguments for IN-operator.
@@ -132,6 +132,7 @@ public class PodDBAdapter {
     public static final String KEY_PLAYLIST = "playlist";
     public static final String KEY_REMOVE_AFTER_PLAYED = "remove_after_played";
     public static final String KEY_REVERSE_PLAY_ORDER = "reverse_play_order";
+    public static final String KEY_PLAY_NEXT_EPISODE = "play_next_episode";
 
     // Table names
     public static final String TABLE_NAME_FEEDS = "Feeds";
@@ -185,6 +186,7 @@ public class PodDBAdapter {
             + KEY_FEED_SKIP_ENDING + " INTEGER DEFAULT 0,"
             + KEY_EPISODE_NOTIFICATION + " INTEGER DEFAULT 0,"
             + KEY_STATE + " INTEGER DEFAULT " + Feed.STATE_SUBSCRIBED + ","
+            + KEY_PLAY_NEXT_EPISODE + " INTEGER DEFAULT 0,"
             + KEY_NEW_EPISODES_ACTION + " INTEGER DEFAULT 0)";
 
     private static final String CREATE_TABLE_FEED_ITEMS = "CREATE TABLE "
@@ -365,6 +367,7 @@ public class PodDBAdapter {
             + TABLE_NAME_FEEDS + "." + KEY_FEED_SKIP_ENDING + ", "
             + TABLE_NAME_FEEDS + "." + KEY_EPISODE_NOTIFICATION + ", "
             + TABLE_NAME_FEEDS + "." + KEY_STATE + ", "
+            + TABLE_NAME_FEEDS + "." + KEY_PLAY_NEXT_EPISODE + ", "
             + TABLE_NAME_FEEDS + "." + KEY_NEW_EPISODES_ACTION;
 
     private static final String JOIN_FEED_ITEM_AND_MEDIA = " LEFT JOIN " + TABLE_NAME_FEED_MEDIA
@@ -547,6 +550,7 @@ public class PodDBAdapter {
         values.put(KEY_FEED_SKIP_ENDING, prefs.getFeedSkipEnding());
         values.put(KEY_EPISODE_NOTIFICATION, prefs.getShowEpisodeNotification());
         values.put(KEY_NEW_EPISODES_ACTION, prefs.getNewEpisodesAction().code);
+        values.put(KEY_PLAY_NEXT_EPISODE, prefs.getPlayNextEpisode().code);
         db.update(TABLE_NAME_FEEDS, values, KEY_ID + "=?", new String[]{String.valueOf(prefs.getFeedID())});
     }
 
@@ -1205,6 +1209,26 @@ public class PodDBAdapter {
                 + " FROM " + TABLE_NAME_PLAYLIST_ITEMS
                 + " WHERE " + KEY_PLAYLIST + "=" + playlistId + " AND " + KEY_FEEDITEM + "=" + item.getId() + ")"
                 + " ORDER BY " + TABLE_NAME_PLAYLIST_ITEMS + "." + KEY_POSITION + (reversePlayOrder ? " DESC" : " ASC")
+                + " LIMIT 1";
+        return db.rawQuery(query, null);
+    }
+
+    public final Cursor getNextUnplayedFeedItemCursor(final FeedItem item, boolean downloadedOnly) {
+        FeedItemFilter filter = new FeedItemFilter(FeedItemFilter.UNPLAYED, FeedItemFilter.HAS_MEDIA,
+                FeedItemFilter.INCLUDE_ALL_FEED_STATES);
+        if (downloadedOnly) {
+            filter = new FeedItemFilter(filter, FeedItemFilter.DOWNLOADED);
+        }
+        long pubDate = item.getPubDate() != null ? item.getPubDate().getTime() : 0;
+        long feedId = item.getFeed() != null ? item.getFeed().getId() : item.getFeedId();
+        final String keyPubDate = TABLE_NAME_FEED_ITEMS + "." + KEY_PUBDATE;
+        final String keyItemId = TABLE_NAME_FEED_ITEMS + "." + KEY_ID;
+        final String query = SELECT_FEED_ITEMS_AND_MEDIA
+                + " WHERE " + TABLE_NAME_FEED_ITEMS + "." + KEY_FEED + "=" + feedId
+                + " AND " + FeedItemFilterQuery.generateFrom(filter)
+                + " AND (" + keyPubDate + " > " + pubDate
+                + " OR (" + keyPubDate + " = " + pubDate + " AND " + keyItemId + " > " + item.getId() + "))"
+                + " ORDER BY " + keyPubDate + " ASC, " + keyItemId + " ASC"
                 + " LIMIT 1";
         return db.rawQuery(query, null);
     }

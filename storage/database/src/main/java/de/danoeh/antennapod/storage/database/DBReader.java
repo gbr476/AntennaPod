@@ -510,6 +510,23 @@ public final class DBReader {
         }
     }
 
+    @Nullable
+    public static synchronized FeedItem getNextUnplayedFeedItem(FeedItem item, boolean downloadedOnly) {
+        PodDBAdapter adapter = PodDBAdapter.getInstance();
+        adapter.open();
+        try (FeedItemCursor cursor = new FeedItemCursor(
+                adapter.getNextUnplayedFeedItemCursor(item, downloadedOnly))) {
+            List<FeedItem> list = extractItemlistFromCursor(cursor);
+            if (!list.isEmpty()) {
+                loadFeedDataOfFeedItemList(list);
+                return list.get(0);
+            }
+            return null;
+        } finally {
+            adapter.close();
+        }
+    }
+
     @NonNull
     public static synchronized List<FeedItem> getPausedQueue(int limit) {
         PodDBAdapter adapter = PodDBAdapter.getInstance();

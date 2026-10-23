@@ -90,6 +90,7 @@ public class Media3PlaybackService extends MediaLibraryService {
     private FeedMedia currentPlayable;
     private String pendingStreamMediaId;
     private boolean allowStreamingThisTime = false;
+    private boolean nextFeedEpisodeStreamApproved = false;
     private Disposable mediaLoaderDisposable;
     private Disposable positionObserverDisposable;
     private Disposable queueLoaderDisposable;
@@ -802,6 +803,15 @@ public class Media3PlaybackService extends MediaLibraryService {
         EventBus.getDefault().post(new PlayerStatusEvent());
     }
 
+    private static boolean isNextFeedEpisodeStreamAllowed() {
+        if (!NetworkUtils.networkAvailable()) {
+            return false;
+        }
+        return NetworkUtils.isNetworkCellular()
+                ? UserPreferences.isPlayNextFeedEpisodeStreamOnMobile()
+                : UserPreferences.isPlayNextFeedEpisodeStreamOnWifi();
+    }
+
     private static boolean needsStreaming(FeedMedia media) {
         return !media.localFileAvailable() && !URLUtil.isContentUrl(media.getStreamUrl());
     }
@@ -856,6 +866,14 @@ public class Media3PlaybackService extends MediaLibraryService {
             if (fromPlaylist && hasNext) {
                 PlaybackPreferences.setCurrentPlaylist(playlistId, nextItem.getId());
             }
+            nextFeedEpisodeStreamApproved = false;
+            if (!hasNext && !fromPlaylist && item.getFeed() != null && item.getFeed().getPreferences() != null
+                    && item.getFeed().getPreferences().isPlayNextEpisode(UserPreferences.isPlayNextFeedEpisode())) {
+                boolean streamAllowed = isNextFeedEpisodeStreamAllowed();
+                nextItem = DBReader.getNextUnplayedFeedItem(item, !streamAllowed);
+                hasNext = nextItem != null && nextItem.getMedia() != null;
+                nextFeedEpisodeStreamApproved = hasNext && streamAllowed;
+            }
             updateDatabaseAfterPlayback(media, startPosition, ended, wasSkipped, hasNext);
             if (hasNext) {
                 return new Pair<>(nextItem.getMedia(),
@@ -869,6 +887,9 @@ public class Media3PlaybackService extends MediaLibraryService {
                         pair -> {
                             final FeedMedia nextMedia = pair.first;
                             final MediaItem nextMediaItem = pair.second;
+                            if (nextFeedEpisodeStreamApproved && player != null) {
+                                allowStreamingThisTime = true;
+                            }
                             if (player == null || confirmStreamingIfNeeded(nextMedia)) {
                                 return;
                             }

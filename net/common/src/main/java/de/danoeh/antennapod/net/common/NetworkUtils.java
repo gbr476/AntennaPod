@@ -79,7 +79,7 @@ public abstract class NetworkUtils {
                 && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
     }
 
-    private static boolean isNetworkCellular() {
+    public static boolean isNetworkCellular() {
         ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         Network network = connManager.getActiveNetwork();
         if (network == null) {

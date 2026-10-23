@@ -363,6 +363,10 @@ class DBUpgrader {
             db.execSQL("ALTER TABLE " + PodDBAdapter.TABLE_NAME_PLAYLISTS
                     + " ADD COLUMN " + PodDBAdapter.KEY_REVERSE_PLAY_ORDER + " INTEGER DEFAULT 0");
         }
+        if (oldVersion < 3120002) {
+            db.execSQL("ALTER TABLE " + PodDBAdapter.TABLE_NAME_FEEDS
+                    + " ADD COLUMN " + PodDBAdapter.KEY_PLAY_NEXT_EPISODE + " INTEGER DEFAULT 0");
+        }
     }
 
 }

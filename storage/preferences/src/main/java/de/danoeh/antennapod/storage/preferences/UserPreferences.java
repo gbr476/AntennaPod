@@ -84,6 +84,9 @@ public abstract class UserPreferences {
     public static final String PREF_HARDWARE_FORWARD_BUTTON = "prefHardwareForwardButton";
     public static final String PREF_HARDWARE_PREVIOUS_BUTTON = "prefHardwarePreviousButton";
     public static final String PREF_FOLLOW_QUEUE = "prefFollowQueue";
+    private static final String PREF_PLAY_NEXT_FEED_EPISODE = "prefPlayNextFeedEpisode";
+    private static final String PREF_PLAY_NEXT_FEED_EPISODE_STREAM_WIFI = "prefPlayNextFeedEpisodeStreamWifi";
+    private static final String PREF_PLAY_NEXT_FEED_EPISODE_STREAM_MOBILE = "prefPlayNextFeedEpisodeStreamMobile";
     public static final String PREF_SKIP_KEEPS_EPISODE = "prefSkipKeepsEpisode";
     public static final String PREF_FAVORITE_KEEPS_EPISODE = "prefFavoriteKeepsEpisode";
     public static final String PREF_AUTO_DELETE = "prefAutoDelete";
@@ -419,6 +422,18 @@ public abstract class UserPreferences {
 
     public static boolean isFollowQueue() {
         return prefs.getBoolean(PREF_FOLLOW_QUEUE, true);
+    }
+
+    public static boolean isPlayNextFeedEpisode() {
+        return prefs.getBoolean(PREF_PLAY_NEXT_FEED_EPISODE, false);
+    }
+
+    public static boolean isPlayNextFeedEpisodeStreamOnWifi() {
+        return prefs.getBoolean(PREF_PLAY_NEXT_FEED_EPISODE_STREAM_WIFI, false);
+    }
+
+    public static boolean isPlayNextFeedEpisodeStreamOnMobile() {
+        return prefs.getBoolean(PREF_PLAY_NEXT_FEED_EPISODE_STREAM_MOBILE, false);
     }
 
     /**

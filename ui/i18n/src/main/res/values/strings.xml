@@ -540,6 +540,11 @@
     <string name="feed_every_24_hours">Every day</string>
     <string name="feed_every_72_hours">Every 3 days</string>
     <string name="pref_followQueue_title">Continuous playback</string>
+    <string name="pref_play_next_feed_episode_title">Continue with the podcast\'s next episode</string>
+    <string name="pref_play_next_feed_episode_sum">When nothing else is lined up, play the next newer unplayed episode of the same podcast</string>
+    <string name="pref_play_next_feed_episode_stream_wifi_title">Stream the next episode on Wi-Fi</string>
+    <string name="pref_play_next_feed_episode_stream_mobile_title">Stream the next episode on mobile data</string>
+    <string name="pref_play_next_feed_episode_stream_sum">When off, only downloaded episodes are played</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Headphones or Bluetooth disconnect</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Headphones reconnect</string>
     <string name="pref_unpauseOnBluetoothReconnect_title">Bluetooth reconnect</string>

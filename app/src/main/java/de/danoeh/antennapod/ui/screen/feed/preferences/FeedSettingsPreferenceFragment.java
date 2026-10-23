@@ -63,6 +63,7 @@ public class FeedSettingsPreferenceFragment extends PreferenceFragmentCompat {
     private static final String PREF_SCREEN = "feedSettingsScreen";
     private static final String PREF_AUTHENTICATION = "authentication";
     private static final String PREF_AUTO_DELETE = "autoDelete";
+    private static final String PREF_PLAY_NEXT_EPISODE = "feedPlayNextEpisode";
     private static final String PREF_NEW_EPISODES_ACTION = "feedNewEpisodesAction";
     private static final String PREF_FEED_PLAYBACK_SPEED = "feedPlaybackSpeed";
     private static final String PREF_AUTO_SKIP = "feedAutoSkip";
@@ -139,6 +140,7 @@ public class FeedSettingsPreferenceFragment extends PreferenceFragmentCompat {
 
                     setupPreferences();
                     updateAutoDeleteSummary();
+                    updatePlayNextEpisodeSummary();
                     updateAutoDownloadEnabledSummary();
                     updateNewEpisodesActionSummary();
 
@@ -216,6 +218,13 @@ public class FeedSettingsPreferenceFragment extends PreferenceFragmentCompat {
                     FeedPreferences.AutoDeleteAction.fromCode(Integer.parseInt((String) newValue)));
             DBWriter.setFeedPreferences(feedPreferences);
             updateAutoDeleteSummary();
+            return false;
+        });
+        findPreference(PREF_PLAY_NEXT_EPISODE).setOnPreferenceChangeListener((preference, newValue) -> {
+            feedPreferences.setPlayNextEpisode(
+                    FeedPreferences.PlayNextEpisode.fromCode(Integer.parseInt((String) newValue)));
+            DBWriter.setFeedPreferences(feedPreferences);
+            updatePlayNextEpisodeSummary();
             return false;
         });
         ListPreference volumeAdaptationPreference = findPreference("volumeReduction");
@@ -321,6 +330,19 @@ public class FeedSettingsPreferenceFragment extends PreferenceFragmentCompat {
         };
         autoDeletePreference.setSummary(summary);
         autoDeletePreference.setValue("" + feedPreferences.getAutoDeleteAction().code);
+    }
+
+    private void updatePlayNextEpisodeSummary() {
+        ListPreference playNextEpisodePreference = findPreference(PREF_PLAY_NEXT_EPISODE);
+        int globalStringResource = UserPreferences.isPlayNextFeedEpisode()
+                ? R.string.feed_auto_download_always : R.string.feed_auto_download_never;
+        String summary = switch (feedPreferences.getPlayNextEpisode()) {
+            case GLOBAL -> getString(R.string.global_default_with_value, getString(globalStringResource));
+            case ALWAYS -> getString(R.string.feed_auto_download_always);
+            default -> getString(R.string.feed_auto_download_never);
+        };
+        playNextEpisodePreference.setSummary(summary);
+        playNextEpisodePreference.setValue("" + feedPreferences.getPlayNextEpisode().code);
     }
 
     private void updateNewEpisodesActionSummary() {

@@ -43,6 +43,14 @@
             android:summary="@string/feed_volume_adaptation_summary"
             android:title="@string/feed_volume_adapdation" />
 
+        <de.danoeh.antennapod.ui.preferences.preference.MaterialListPreference
+            android:entries="@array/spnAutoDeleteItems"
+            android:entryValues="@array/spnAutoDeleteValues"
+            android:icon="@drawable/ic_playlist_play"
+            android:key="feedPlayNextEpisode"
+            android:summary="@string/global_default"
+            android:title="@string/pref_play_next_feed_episode_title" />
+
     </PreferenceCategory>
 
     <PreferenceCategory

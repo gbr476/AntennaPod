@@ -79,6 +79,27 @@ public class FeedPreferences implements Serializable {
         }
     }
 
+    public enum PlayNextEpisode {
+        GLOBAL(0),
+        ALWAYS(1),
+        NEVER(2);
+
+        public final int code;
+
+        PlayNextEpisode(int code) {
+            this.code = code;
+        }
+
+        public static PlayNextEpisode fromCode(int code) {
+            for (PlayNextEpisode setting : values()) {
+                if (code == setting.code) {
+                    return setting;
+                }
+            }
+            return GLOBAL;
+        }
+    }
+
     public enum AutoDownloadSetting {
         DISABLED(0),
         ENABLED(2),
@@ -115,6 +136,7 @@ public class FeedPreferences implements Serializable {
     private int feedSkipEnding;
     private SkipSilence feedSkipSilence;
     private boolean showEpisodeNotification;
+    private PlayNextEpisode playNextEpisode = PlayNextEpisode.GLOBAL;
     private final Set<String> tags = new HashSet<>();
 
     public FeedPreferences(long feedID, AutoDownloadSetting autoDownload, AutoDeleteAction autoDeleteAction,
@@ -238,6 +260,22 @@ public class FeedPreferences implements Serializable {
 
     public void setNewEpisodesAction(NewEpisodesAction newEpisodesAction) {
         this.newEpisodesAction = newEpisodesAction;
+    }
+
+    public PlayNextEpisode getPlayNextEpisode() {
+        return playNextEpisode;
+    }
+
+    public void setPlayNextEpisode(PlayNextEpisode playNextEpisode) {
+        this.playNextEpisode = playNextEpisode;
+    }
+
+    public boolean isPlayNextEpisode(boolean globalDefault) {
+        return switch (playNextEpisode) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            default -> globalDefault;
+        };
     }
 
     public AutoDeleteAction getCurrentAutoDelete() {
